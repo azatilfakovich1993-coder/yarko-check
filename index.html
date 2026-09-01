@@ -1,0 +1,1048 @@
+<title>Проверка карточек туров</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap">
+
+<style>
+:root{
+  --ground:#FAFAFA; --panel:#FFFFFF; --sunk:#F1F2F4;
+  --line:#E2E5E9; --line-hard:#CBD1D8;
+  --ink:#171A1E; --dim:#5D656F;
+  --accent:#33506B; --accent-soft:#E8EEF4;
+  --ok:#2F6B4F; --ok-bg:#E8F2EC;
+  --bad:#A33A32; --bad-bg:#FBEAE8;
+  --warn:#8A6220; --warn-bg:#F8EFDF;
+  --sans:"Manrope",-apple-system,Segoe UI,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0F1114; --panel:#161A1F; --sunk:#1C2127;
+  --line:#272D35; --line-hard:#39414B;
+  --ink:#E9ECEF; --dim:#98A1AC;
+  --accent:#7FA8CC; --accent-soft:#1A2833;
+  --ok:#6DBE95; --ok-bg:#16281F;
+  --bad:#E08A80; --bad-bg:#2C1A18;
+  --warn:#D9AC64; --warn-bg:#2A2113;
+}}
+:root[data-theme="dark"]{
+  --ground:#0F1114; --panel:#161A1F; --sunk:#1C2127;
+  --line:#272D35; --line-hard:#39414B;
+  --ink:#E9ECEF; --dim:#98A1AC;
+  --accent:#7FA8CC; --accent-soft:#1A2833;
+  --ok:#6DBE95; --ok-bg:#16281F;
+  --bad:#E08A80; --bad-bg:#2C1A18;
+  --warn:#D9AC64; --warn-bg:#2A2113;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:var(--sans);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1060px;margin:0 auto;padding:0 20px 80px}
+
+header{padding:40px 0 24px;border-bottom:1px solid var(--line);margin-bottom:28px}
+.kicker{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--accent);margin:0 0 12px}
+h1{font-weight:700;font-size:clamp(24px,4vw,33px);line-height:1.15;
+  letter-spacing:-.02em;margin:0 0 12px;text-wrap:balance}
+.sub{color:var(--dim);margin:0;max-width:64ch;font-size:16px}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(126px,1fr));
+  gap:1px;background:var(--line);border:1px solid var(--line);margin:24px 0 0}
+.stat{background:var(--ground);padding:14px 15px}
+.stat b{display:block;font-family:var(--mono);font-size:22px;font-weight:500;
+  letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-bottom:2px}
+.stat span{display:block;font-size:12.5px;color:var(--dim);line-height:1.35}
+.stat.is-bad b{color:var(--bad)} .stat.is-ok b{color:var(--ok)}
+
+h2{font-weight:600;font-size:19px;margin:0 0 6px;letter-spacing:-.01em}
+.hint{color:var(--dim);font-size:14px;margin:0 0 16px;max-width:66ch}
+section{margin-bottom:44px}
+
+.note{background:var(--accent-soft);border-left:2px solid var(--accent);
+  padding:15px 19px;margin:0 0 18px}
+.note p{margin:0 0 9px} .note p:last-child{margin:0}
+
+button,select,input,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
+.btn{background:var(--accent);color:#fff;border:none;padding:9px 16px;
+  cursor:pointer;font-weight:600;font-size:14px}
+:root[data-theme="dark"] .btn, html:not([data-theme="light"]) .btn{color:#0F1114}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--line-hard);font-weight:500}
+.btn:hover{opacity:.88}
+.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,
+.tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input[type=text],input[type=number],select,textarea{
+  background:var(--panel);border:1px solid var(--line-hard);padding:7px 9px;width:100%}
+textarea{min-height:64px;resize:vertical;line-height:1.5}
+
+/* rules editor */
+.ruleslist{border:1px solid var(--line);background:var(--panel)}
+.rrow{display:grid;grid-template-columns:auto 58px 1fr auto;gap:0 12px;
+  align-items:start;padding:9px 14px;border-bottom:1px solid var(--line)}
+.rrow:last-child{border-bottom:none}
+.rrow.off{opacity:.42}
+.rrow input[type=checkbox]{width:16px;height:16px;margin-top:4px;accent-color:var(--accent)}
+.rrow .code{font-family:var(--mono);font-size:12px;color:var(--dim);padding-top:3px}
+.rrow .name{font-size:14.5px;padding-top:1px}
+.rrow .thr{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--dim);white-space:nowrap}
+.rrow .thr input{width:56px;text-align:center;padding:3px 4px}
+.tagm{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);
+  padding:0 4px;margin-left:7px;vertical-align:1px}
+.tagc{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--dim);border:1px solid var(--line-hard);
+  padding:0 4px;margin-left:7px;vertical-align:1px}
+.del{background:none;border:none;color:var(--bad);cursor:pointer;font-size:16px;line-height:1;padding:2px 4px}
+
+.addrule{background:var(--sunk);border:1px solid var(--line);border-top:none;padding:14px}
+.addrule .fields{display:grid;grid-template-columns:1fr 150px 150px 90px auto;gap:8px;align-items:end}
+.addrule label{display:block;font-size:12px;color:var(--dim);margin-bottom:3px}
+@media(max-width:760px){.addrule .fields{grid-template-columns:1fr 1fr}}
+
+/* tabs */
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.tab{font-size:13.5px;font-weight:500;background:var(--panel);color:var(--ink);
+  border:1px solid var(--line-hard);padding:8px 13px;cursor:pointer;text-align:left;line-height:1.3}
+.tab:hover{border-color:var(--accent)}
+.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] .tab[aria-selected="true"],
+html:not([data-theme="light"]) .tab[aria-selected="true"]{color:#0F1114}
+.tab .score{font-family:var(--mono);font-size:11px;display:block;opacity:.75;
+  margin-top:2px;font-variant-numeric:tabular-nums}
+.tab.add{border-style:dashed;color:var(--accent)}
+
+.cardhead{background:var(--sunk);border:1px solid var(--line);padding:15px 17px}
+.cardhead h3{margin:0 0 5px;font-size:17px;font-weight:600}
+.cardmeta{font-family:var(--mono);font-size:12.5px;color:var(--dim);
+  display:flex;flex-wrap:wrap;gap:3px 17px;font-variant-numeric:tabular-nums}
+.rules{border:1px solid var(--line);border-top:none;background:var(--panel)}
+.rule{display:grid;grid-template-columns:58px 24px 1fr;gap:0 11px;
+  padding:10px 17px;border-bottom:1px solid var(--line)}
+.rule:last-child{border-bottom:none}
+.rule .code{font-family:var(--mono);font-size:12px;color:var(--dim);padding-top:2px}
+.rule .mark{font-family:var(--mono);font-size:14px;font-weight:500;padding-top:1px}
+.rule.ok .mark{color:var(--ok)} .rule.bad .mark{color:var(--bad)} .rule.warn .mark{color:var(--warn)}
+.rule.bad{background:var(--bad-bg)} .rule.warn{background:var(--warn-bg)}
+.rule .txt{font-size:14.5px}
+.rule .why{display:block;font-size:13px;color:var(--dim);margin-top:2px}
+
+.scroll{overflow-x:auto;border:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:560px;background:var(--panel)}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line)}
+thead th{background:var(--sunk);font-size:12px;font-weight:600;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--dim);white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill{display:inline-block;font-family:var(--mono);font-size:11.5px;padding:2px 7px;white-space:nowrap}
+.pill.bad{background:var(--bad-bg);color:var(--bad)}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}
+.pill.warn{background:var(--warn-bg);color:var(--warn)}
+
+/* editor form */
+.editor{border:1px solid var(--line);background:var(--panel);padding:18px;margin-bottom:16px}
+.editor .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.editor label{display:block;font-size:12.5px;color:var(--dim);margin-bottom:3px}
+.editor .full{grid-column:1/-1}
+.editor .actions{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+.small{font-size:12.5px;color:var(--dim);margin-top:6px}
+.editor input.miss,.editor textarea.miss{border-color:var(--bad);background:var(--bad-bg)}
+.editor .missmsg{display:block;font-size:12.5px;color:var(--bad);margin-top:4px;line-height:1.4}
+.editor label.misslab{color:var(--bad);font-weight:600}
+.progress{display:flex;align-items:center;gap:12px;margin:0 0 14px;flex-wrap:wrap}
+.progress .track{flex:1;min-width:150px;height:8px;background:var(--sunk)}
+.progress .fill{height:100%;background:var(--ok);transition:width .2s}
+.progress .txt{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.progress .txt b{color:var(--bad)}
+
+.bars{border:1px solid var(--line);background:var(--panel)}
+.bar{display:grid;grid-template-columns:1fr 118px 74px;gap:12px;align-items:center;
+  padding:10px 14px;border-bottom:1px solid var(--line)}
+.bar:last-child{border-bottom:none}
+.bar .t{font-size:14px}
+.bar .track{height:8px;background:var(--sunk);position:relative}
+.bar .fill{position:absolute;left:0;top:0;bottom:0;background:var(--bad)}
+.bar .fill.m{background:var(--accent)}
+.bar .v{font-family:var(--mono);font-size:12.5px;text-align:right;
+  font-variant-numeric:tabular-nums;color:var(--dim)}
+
+footer{border-top:1px solid var(--line);padding-top:20px;color:var(--dim);font-size:13.5px}
+footer p{margin:0 0 8px}
+</style>
+
+<div class="wrap">
+
+<header>
+  <p class="kicker">Черновик · можно править прямо здесь</p>
+  <h1>Проверка карточек туров по чек-листу качества</h1>
+  <p class="sub">Правила включаются, отключаются и настраиваются на этой же странице. Можно добавить свои и вставить любую свою карточку — всё пересчитывается сразу. Внизу — прогноз, что даст прогон по всей базе.</p>
+  <div class="stats" id="stats"></div>
+</header>
+
+<section>
+  <div class="note">
+    <p><b>Смотрите не на список правил, а на пропорцию.</b> Большая часть проверок не требует языковой модели: есть ли поле, сколько фотографий, хватает ли блоков программы на все дни — это считает обычный код. Мгновенно, бесплатно, одинаково каждый раз.</p>
+    <p>Модель нужна там, где надо понять смысл: по делу ли описание, соответствует ли список вещей программе, не шаблонная ли карточка. Такие правила помечены отдельно.</p>
+    <p>При трёх тысячах карточек эта разница и есть разница между рабочим инструментом и дорогой игрушкой.</p>
+  </div>
+</section>
+
+<section>
+  <h2>1. Чек-лист</h2>
+  <p class="hint">Выключите лишнее, поменяйте пороги, добавьте своё правило. Отчёты ниже пересчитаются сразу.</p>
+  <div class="ruleslist" id="ruleslist"></div>
+  <div class="addrule">
+    <div class="fields">
+      <div><label for="nrName">Название правила</label>
+        <input type="text" id="nrName" placeholder="Например: указан контакт организатора"></div>
+      <div><label for="nrField">Что проверяем</label><select id="nrField"></select></div>
+      <div><label for="nrCond">Условие</label><select id="nrCond">
+        <option value="filled">заполнено</option>
+        <option value="min">не меньше</option>
+        <option value="contains">содержит слово</option>
+      </select></div>
+      <div><label for="nrVal">Значение</label><input type="text" id="nrVal" placeholder="—"></div>
+      <div><button class="btn" id="nrAdd">Добавить</button></div>
+    </div>
+    <p class="small">Правила хранятся отдельно от кода. В рабочей версии их редактирует менеджер в таблице, без разработчика.</p>
+  </div>
+</section>
+
+<section>
+  <h2>2. Карточки</h2>
+  <p class="hint">Четыре настоящие карточки с сайта. Можно отредактировать любую или добавить свою — кнопкой справа.</p>
+  <div class="tabs" id="tabs" role="tablist"></div>
+  <div id="editorBox"></div>
+  <div id="report"></div>
+</section>
+
+<section>
+  <h2>3. Что не так чаще всего</h2>
+  <p class="hint">Сводка по всем карточкам, которые сейчас загружены.</p>
+  <div class="bars" id="bars"></div>
+</section>
+
+<section>
+  <h2>4. Если прогнать по всей базе</h2>
+  <p class="hint">Простой пересчёт: доли, найденные на загруженных карточках, перенесены на всю базу. Это оценка, а не результат проверки ваших настоящих данных.</p>
+  <div style="margin-bottom:14px;display:flex;gap:10px;align-items:end;flex-wrap:wrap">
+    <div style="max-width:190px"><label style="display:block;font-size:12.5px;color:var(--dim);margin-bottom:3px" for="baseSize">Сколько карточек в базе</label>
+      <input type="number" id="baseSize" value="3000" min="1" max="1000000"></div>
+  </div>
+  <div class="scroll"><table id="forecast"><tbody></tbody></table></div>
+  <p class="small"><b>Осторожно с этими числами.</b> Глазами сверена только карточка «Орлиная полка» — по ней три нарушения из двадцати шести. Три остальные собраны автоматически, и часть их «нарушений» — это пробелы в моём сборе, а не в самих карточках. Настоящие доли будут видны только на выгрузке из вашей базы.</p>
+  <p class="small">Прогон трёх тысяч карточек — это несколько минут работы обычного кода. Проверки, которым нужна модель, считаются отдельно и стоят денег, поэтому их и держат в меньшинстве.</p>
+</section>
+
+<section>
+  <h2>5. Проверка фотографий</h2>
+  <p class="hint">Выберите любые снимки — свои или из карточек туров. Всё считается прямо в браузере, фотографии никуда не отправляются и никуда не загружаются.</p>
+  <div class="editor" style="padding:16px">
+    <input type="file" id="photoIn" accept="image/*" multiple style="border:none;padding:0">
+    <p class="small" style="margin-top:8px">Можно выбрать сразу несколько — тогда проверю ещё и на совпадение между ними.</p>
+  </div>
+  <div id="photoOut"></div>
+  <div class="note" style="margin-top:16px">
+    <p><b>Что здесь проверяется без всякого ИИ:</b> есть ли у снимка данные съёмки — камера, дата, координаты; не обработан ли он редактором; и не совпадает ли с другим загруженным изображением.</p>
+    <p>Последнее — самое полезное. Если одно и то же фото стоит в карточках двух разных организаторов, значит снимал его максимум один из них. Сравнение идёт по отпечатку изображения, поэтому ловятся и пережатые копии, и изменённый размер.</p>
+    <p><b>Чего это не заменяет:</b> поиска картинки по интернету. Для него нужен внешний сервис, и в рабочей версии подключается он. Отсутствие данных съёмки — не доказательство, а повод посмотреть глазами.</p>
+  </div>
+</section>
+
+<section>
+  <h2>6. Чек-лист из вашей же оферты</h2>
+  <p class="hint">Требования к карточкам не надо придумывать — они уже записаны в оферте для организаторов. Сейчас их соблюдение никто не проверяет автоматически. Ниже — что из этого можно поставить на проверку и что для этого нужно.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Требование оферты</th><th>Пункт</th><th>Проверяется</th></tr></thead>
+    <tbody>
+      <tr><td>Расписание по дням и часам, цена, что входит в стоимость — актуальны</td><td class="n">2.3.11</td>
+          <td><span class="pill ok">да, в демо</span></td></tr>
+      <tr><td>В описании услуги не указано имя организатора или название компании</td><td class="n">2.3.10</td>
+          <td><span class="pill ok">можно, обычным кодом</span></td></tr>
+      <tr><td>Информация полная и актуальная, проверяется не реже раза в неделю</td><td class="n">2.3.18</td>
+          <td><span class="pill warn">нужна дата обновления карточки</span></td></tr>
+      <tr><td>Контакты организатора указаны достоверно и поддерживаются актуальными</td><td class="n">2.3.5</td>
+          <td><span class="pill warn">нужны поля телефона и почты</span></td></tr>
+      <tr><td>У организатора есть права на используемые фотографии</td><td class="n">5.2</td>
+          <td><span class="pill warn">частично: одинаковые фото у разных организаторов и чужие водяные знаки ловятся, остальное — отметка о правах</span></td></tr>
+      <tr><td>Информация и материалы не противоречат законодательству — тексты и фотографии</td><td class="n">2.3.9</td>
+          <td><span class="pill warn">модель помечает, решает человек</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="note" style="margin-top:16px">
+    <p><b>Что это меняет для разговора с организаторами.</b> Проверка перестаёт быть чьей-то придиркой и становится напоминанием об условиях, которые организатор уже подписал.</p>
+    <p>Пункт 2.3.18 — про еженедельную проверку полноты — сегодня выполняется на честном слове. Автоматический прогон раз в сутки закрывает его целиком, и это довод не только про качество витрины, но и про исполнение договора.</p>
+  </div>
+</section>
+
+<section>
+  <h2>7. Как это встроить</h2>
+  <div class="note">
+    <p><b>Без правок сайта.</b> Организатор сохранил карточку — вебхук дёргает проверку — через десять секунд ему приходит в телеграм список того, чего не хватает, со ссылкой на карточку.</p>
+    <p><b>Раз в сутки по всей базе.</b> Старые карточки никто не пойдёт переделывать сам, поэтому нужен ночной прогон и письмо организатору со списком.</p>
+    <p><b>Панель прямо в форме заполнения</b> — красивее всего, но это уже правка вашего сайта. Делается вторым шагом, когда правила устоялись.</p>
+    <p><b>Блокировать стоит немногое.</b> Пять критичных правил — запрет на публикацию. Остальное — рекомендации, влияющие на позицию в поиске. Мотивация работает лучше запрета: заполненная карточка выше в выдаче, и организатор дозаполнит её сам.</p>
+  </div>
+</section>
+
+<footer>
+  <p>Черновик собран по публичным страницам сайта yarko.travel и по оферте для организаторов. Оценивается полнота карточек, а не качество туров.</p>
+  <p>Три правила, помеченные как требующие модели, в этой странице посчитаны заранее вручную — модель внутри статичной страницы не запустить. Для новых и отредактированных карточек они не оцениваются.</p>
+</footer>
+
+</div>
+
+<script>
+"use strict";
+
+// ── поля карточки, доступные для правил ────────────────────────────────────
+const FIELDS = [
+  {key:"price",       label:"цена",                  type:"num"},
+  {key:"days",        label:"длительность",          type:"num"},
+  {key:"from",        label:"город отправления",     type:"str"},
+  {key:"meeting",     label:"точка сбора",           type:"str"},
+  {key:"dates",       label:"даты заездов",          type:"str"},
+  {key:"programBlocks",label:"блоков программы",     type:"num"},
+  {key:"included",    label:"что входит",            type:"list"},
+  {key:"notIncluded", label:"что не входит",         type:"list"},
+  {key:"bring",       label:"что взять с собой",     type:"list"},
+  {key:"cancellation",label:"условия отмены",        type:"str"},
+  {key:"photos",      label:"фотографий",            type:"num"},
+  {key:"stay",        label:"размещение",            type:"str"},
+  {key:"ageMin",      label:"возраст от",            type:"num"},
+  {key:"difficulty",  label:"сложность",             type:"str"},
+  {key:"prepay",      label:"предоплата",            type:"str"},
+  {key:"title",       label:"название",              type:"str"},
+  {key:"description", label:"описание",              type:"str"},
+  {key:"organizer",   label:"организатор",           type:"str"},
+  {key:"route",       label:"маршрут тура",          type:"str"},
+  {key:"tags",        label:"теги",                  type:"list"},
+  {key:"important",   label:"важная информация",     type:"str"},
+  {key:"ageMax",      label:"возраст до",            type:"num"},
+  {key:"priceOld",    label:"цена до скидки",        type:"num"},
+  {key:"seatsTotal",  label:"мест всего",            type:"num"}
+];
+
+// ── четыре настоящие карточки ──────────────────────────────────────────────
+const BASE_CARDS = [
+  {id:"orlinaya", title:"Орлиная полка и Гуамское ущелье / Р_ЛВМ", organizer:"Людмила/Виктория",
+   price:5900, days:1, from:"Ростов-на-Дону", meeting:"пр-кт Ворошиловский, 87Б",
+   dates:"5.09", programBlocks:9, route:"Орлиная полка — Гуамское ущелье — Курджипский каньон — Термальные источники",
+   confirmedHours:16, seatsLeft:2, seatsTotal:20,
+   included:["Проезд на комфортабельном микроавтобусе туристического класса","Завтрак-пикник: сэндвичи, кексы и горный чай","Вода в дорогу","Сопровождение ко всем локациям и экскурсиям","Профессиональное фото сопровождение","Шампанское за знакомство","Любовь и забота организаторов"],
+   notIncluded:["Паровозик в Гуамском ущелье — 1000 ₽ взрослый / 800 ₽ ребёнок","Термальные источники ~ 500 ₽ / чел.","Питание вне программы"],
+   bring:["Перекус в дорогу","Удобная нескользящая обувь","Документы (паспорт, СНИЛС, полис)","Индивидуальный набор лекарств","Предметы личной гигиены","Power bank","Наличные","Дождевик","Купальник, полотенце, сланцы для термальных источников"],
+   important:"Тайминг и программа могут корректироваться в связи с погодными условиями. За несколько дней до тура в Telegram и Max будут созданы чаты участников.",
+   cancellation:"", photos:16, stay:"", ageMin:8, ageMax:65, priceOld:6900,
+   difficulty:"Средний (Активный)", prepay:"3 000 ₽",
+   tags:["Групповой","Термальные источники","Горы","Фото туры","С детьми","Семейный"],
+   description:"Орлиная полка и Гуамское ущелье места, где нужно побывать в каждое время года, ведь виды меняются в настроение погоды и сезона, каждый раз новая картинка-это просто потрясающе!",
+   real:true, checked:true,
+   model:{desc:{state:"bad",why:"Описание в одну фразу и без конкретики. Что именно увидит турист — непонятно."},
+          bring:{state:"ok",why:"В программе термальные источники — купальник, полотенце и сланцы в списке есть."},
+          uniq:{state:"warn",why:"Формулировки повторяются с другими турами этого организатора."}}},
+
+  {id:"adygeya", title:"Экстрим в Адыгее", organizer:"Людмила/Виктория",
+   price:10700, days:2, from:"Ростов-на-Дону", meeting:"пр-кт Ворошиловский, 87Б",
+   dates:"5–6.09", programBlocks:11,
+   included:["трансфер","проживание","два завтрака","вода","сопровождение и фото","барбекю","шампанское"],
+   notIncluded:["тропа Горца 1000 ₽","тропа Героя 2500 ₽","качели 500 ₽","квадроциклы 2500 ₽","термы 600 ₽","пещера 800 ₽","канатная дорога","рафтинг ~2200 ₽"],
+   bring:["документы","аптечка","перекусы","нескользящая обувь","тёплая одежда","солнцезащита","наличные"],
+   cancellation:"", photos:8, stay:"База отдыха, 2–3-местные номера", ageMin:8,
+   difficulty:"Средний", prepay:"от 50% до 100%, уточняется у организатора",
+   description:"Двухдневный маршрут: адреналин-парк Мишоко, горные вершины, пещеры, местные деликатесы и термальные источники. Активно-развлекательный формат для семей и молодёжи.",
+   real:true,
+   model:{desc:{state:"ok",why:"Описание конкретное: парк, пещеры, канатная дорога, термы."},
+          bring:{state:"bad",why:"В программе термальные источники, а купальника и полотенца в списке вещей нет."},
+          uniq:{state:"warn",why:"Пересекается по формулировкам с другими турами того же организатора."}}},
+
+  {id:"elbrus", title:"На Эльбрус: к высшей точке России", organizer:"Людмила/Виктория",
+   price:12900, days:2, from:"Ростов-на-Дону", meeting:"пр-кт Ворошиловский, 87Б",
+   dates:"", programBlocks:8,
+   included:["транспорт","отель две ночи","сопровождение","фотосъёмка","завтраки","шампанское","вечерняя программа"],
+   notIncluded:["канатная дорога 3200 ₽","ски-пасс 4200 ₽","прокат ~1500 ₽","альпаки 1200 ₽","лошади 2000 ₽/час","термы 500 ₽"],
+   bring:["паспорт","лекарства","треккинговая обувь","тёплая одежда","солнцезащита","купальник","повербанк"],
+   cancellation:"", photos:10, stay:"Отель, название не указано", ageMin:8,
+   difficulty:"Лёгкий", prepay:"",
+   description:"Подъём на канатной дороге до 3800 метров, альпийские луга, эко-тропа к Чегету, ферма альпак и термальные источники.",
+   real:true,
+   model:{desc:{state:"ok",why:"Описание по делу: канатная дорога, эко-тропа, альпаки, термы."},
+          bring:{state:"ok",why:"Термы в программе — купальник в списке есть."},
+          uniq:{state:"warn",why:"Тот же набор фраз, что и в остальных турах организатора."}}},
+
+  {id:"abhazia", title:"Сказочная Абхазия / Р_ЛВМ", organizer:"Людмила/Виктория",
+   price:19500, days:3, from:"Ростов-на-Дону", meeting:"пр-кт Ворошиловский, 87Б",
+   dates:"", programBlocks:3,
+   included:["транспорт","три завтрака","проживание","гид два дня","фотограф","ужин-барбекю","шампанское"],
+   notIncluded:["питание вне программы","пещера 1000 ₽","заповедник 1000 ₽","зиплайн 1000 ₽"],
+   bring:[],
+   cancellation:"", photos:12, stay:"Гостевой дом, 2–3-местные номера", ageMin:8,
+   difficulty:"Лёгкий", prepay:"",
+   description:"Невероятная природа Абхазии: горные ущелья, сосновые леса и кристально чистые озёра.",
+   real:true,
+   model:{desc:{state:"ok",why:"Коротко, но по существу — всё названное есть в программе."},
+          bring:{state:"bad",why:"Списка вещей нет вообще, а тур трёхдневный с выездом за границу."},
+          uniq:{state:"warn",why:"Совпадает по формулировкам с остальными турами организатора."}}}
+];
+
+// ── базовые правила ────────────────────────────────────────────────────────
+function mkRules(){ return [
+ {code:"K01",kind:"code",on:true,text:"Указана цена",f:c=>c.price>0,
+  why:"Цена не указана."},
+ {code:"K02",kind:"code",on:true,text:"Указана длительность",f:c=>c.days>0,
+  why:"Не указана продолжительность тура."},
+ {code:"K03",kind:"code",on:true,text:"Указан город отправления",f:c=>!!s(c.from),
+  why:"Не указан город выезда."},
+ {code:"K04",kind:"code",on:true,text:"Указан адрес точки сбора",f:c=>!!s(c.meeting),
+  why:"Не указан адрес места сбора группы."},
+ {code:"K05",kind:"code",on:true,text:"Указаны даты заездов",f:c=>!!s(c.dates),
+  why:"Даты заездов не указаны — турист уйдёт уточнять в переписку."},
+ {code:"K06",kind:"code",on:true,text:"Расписана программа",f:c=>c.programBlocks>0,
+  why:"Программа не заполнена."},
+ {code:"K07",kind:"code",on:true,text:"Программа покрывает все дни",f:c=>c.programBlocks>=c.days,
+  why:c=>"В программе "+plural(c.programBlocks,["пункт","пункта","пунктов"])+", а в туре "+plural(c.days,["день","дня","дней"])+"."},
+ {code:"K08",kind:"code",on:true,text:"Указано, что входит в стоимость",thr:3,thrLabel:"от",thrUnit:"пунктов",
+  f:(c,t)=>c.included.length>=t,
+  why:(c,t)=>"Сейчас "+plural(c.included.length,["пункт","пункта","пунктов"])+", нужно не меньше "+t+"."},
+ {code:"K09",kind:"code",on:true,text:"Указано, что не входит и сколько стоит",f:c=>c.notIncluded.length>0,
+  why:"Дополнительные расходы не перечислены."},
+ {code:"K10",kind:"code",on:true,text:"Указано, что взять с собой",f:c=>c.bring.length>0,
+  why:"Список вещей пустой."},
+ {code:"K11",kind:"code",on:true,text:"Указаны условия отмены и возврата",f:c=>!!s(c.cancellation),
+  why:"Условий отмены нет. Самый частый повод для спора после поездки."},
+ {code:"K12",kind:"code",on:true,text:"Достаточно фотографий",thr:5,thrLabel:"от",thrUnit:"фото",
+  f:(c,t)=>c.photos>=t,
+  why:(c,t)=>"Сейчас "+plural(c.photos,["фотография","фотографии","фотографий"])+", нужно не меньше "+t+"."},
+ {code:"K13",kind:"code",on:true,text:"Для тура от двух дней указано размещение",
+  f:c=>c.days<2||!!s(c.stay),
+  why:"Тур на несколько дней, а где ночуют — не указано."},
+ {code:"K14",kind:"code",on:true,text:"Указаны возрастные ограничения",f:c=>c.ageMin>0,
+  why:"Не указан возраст участников."},
+ {code:"K15",kind:"code",on:true,text:"Указана сложность",f:c=>!!s(c.difficulty),
+  why:"Не указана сложность тура."},
+ {code:"K16",kind:"code",on:true,text:"Размер предоплаты указан конкретно",
+  f:c=>!!s(c.prepay)&&/\d/.test(c.prepay)&&!/уточня/i.test(c.prepay),
+  why:"Предоплата не указана или задана расплывчато — турист не знает, сколько платить."},
+ // Ё не входит в диапазон А-Я, без неё «Ё_ТУР» проскакивает мимо проверки
+ {code:"K17",kind:"code",on:true,text:"В названии нет служебных пометок",
+  f:c=>!/[A-ZА-ЯЁ]_[A-ZА-ЯЁ]{2,}|\/\s*[A-ZА-ЯЁ_]{3,}/.test(c.title||""),
+  why:"В название попал внутренний код."},
+ {code:"K18",kind:"code",on:true,text:"Описание достаточной длины",thr:120,thrLabel:"от",thrUnit:"знаков",
+  f:(c,t)=>(c.description||"").trim().length>=t,
+  why:(c,t)=>"Описание короче нужного: сейчас "+plural((c.description||"").trim().length,["знак","знака","знаков"])+", нужно от "+t+"."},
+ {code:"K19",kind:"code",on:true,text:"Заполнен маршрут тура",f:c=>!!s(c.route),
+  why:"Строка маршрута пустая — турист не видит, куда именно едет."},
+ {code:"K20",kind:"code",on:true,text:"Проставлены теги",thr:2,thrLabel:"от",thrUnit:"шт.",
+  f:(c,t)=>(c.tags||[]).length>=t,
+  why:(c,t)=>"Сейчас "+plural((c.tags||[]).length,["тег","тега","тегов"])+", нужно от "+t+". Без тегов карточка не попадает в подборки и фильтры."},
+ {code:"K21",kind:"code",on:true,text:"Заполнена важная информация",f:c=>!!s(c.important),
+  why:"Блок «Важная информация» пустой — там обычно предупреждают о погоде, документах и чате группы."},
+ {code:"K22",kind:"code",on:true,text:"Возраст указан и «от», и «до»",f:c=>c.ageMin>0&&c.ageMax>0,
+  why:"Верхняя граница возраста не указана."},
+ {code:"K23",kind:"code",on:true,text:"Скидка не нарисована: старая цена выше новой",
+  f:c=>!c.priceOld||c.priceOld>c.price,
+  why:"Цена до скидки не больше текущей — скидка выглядит как оформление, а не как выгода."},
+ {code:"M01",kind:"model",on:true,text:"Описание по делу, а не общими словами",key:"desc"},
+ {code:"M02",kind:"model",on:true,text:"Список вещей соответствует программе",key:"bring"},
+ {code:"M03",kind:"model",on:true,text:"Карточка не выглядит шаблонной",key:"uniq"}
+];}
+
+function s(v){ return (v===null||v===undefined) ? "" : String(v).trim(); }
+
+// Склонение: 1 пункт, 2 пункта, 5 пунктов.
+function plural(n, forms){
+  const a = Math.abs(n) % 100, b = a % 10;
+  if(a > 10 && a < 20) return n + " " + forms[2];
+  if(b > 1 && b < 5)   return n + " " + forms[1];
+  if(b === 1)          return n + " " + forms[0];
+  return n + " " + forms[2];
+}
+
+// Какое поле формы подсвечивать при нарушении правила.
+const RULE_FIELD = {
+  K01:"e_price", K02:"e_days", K03:"e_from", K04:"e_meeting", K05:"e_dates",
+  K06:"e_blocks", K07:"e_blocks", K08:"e_inc", K09:"e_ninc", K10:"e_bring",
+  K11:"e_cancel", K12:"e_photos", K13:"e_stay", K14:"e_age", K15:"e_diff",
+  K16:"e_prepay", K17:"e_title", K18:"e_desc", K19:"e_route", K20:"e_tags",
+  K21:"e_imp", K22:"e_agemax", K23:"e_priceold"
+};
+const FIELD_INPUT = {
+  price:"e_price", days:"e_days", from:"e_from", meeting:"e_meeting", dates:"e_dates",
+  programBlocks:"e_blocks", included:"e_inc", notIncluded:"e_ninc", bring:"e_bring",
+  cancellation:"e_cancel", photos:"e_photos", stay:"e_stay", ageMin:"e_age",
+  difficulty:"e_diff", prepay:"e_prepay", title:"e_title", description:"e_desc",
+  organizer:"e_org", route:"e_route", tags:"e_tags", important:"e_imp",
+  ageMax:"e_agemax", priceOld:"e_priceold", seatsTotal:"e_seats"
+};
+
+// ── состояние ──────────────────────────────────────────────────────────────
+// Версия данных. Меняется при правке эталонных карточек — тогда старое
+// сохранённое состояние отбрасывается, иначе оно перебивает исправления.
+const LS="yarko-check-v5";
+let state = load() || {rules:mkRules(), custom:[], cards:BASE_CARDS.map(c=>clone(c)), active:BASE_CARDS[0].id, base:3000};
+if(!state.rules || !state.rules.length) state.rules = mkRules();
+
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function save(){
+  try{
+    localStorage.setItem(LS, JSON.stringify({
+      rulesOn: state.rules.map(r=>({code:r.code,on:r.on,thr:r.thr})),
+      custom: state.custom, cards: state.cards, active: state.active, base: state.base
+    }));
+  }catch(e){}
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(LS); if(!raw) return null;
+    const d = JSON.parse(raw);
+    const rules = mkRules();
+    (d.rulesOn||[]).forEach(x=>{ const r=rules.find(y=>y.code===x.code);
+      if(r){ r.on=x.on; if(x.thr!==undefined) r.thr=x.thr; } });
+    return {rules, custom:d.custom||[], cards:d.cards||BASE_CARDS.map(c=>clone(c)),
+            active:d.active||BASE_CARDS[0].id, base:d.base||3000};
+  }catch(e){ return null; }
+}
+
+// ── проверка ───────────────────────────────────────────────────────────────
+function customTest(rule, card){
+  const fld = FIELDS.find(f=>f.key===rule.field);
+  const raw = card[rule.field];
+  if(!fld) return true;
+  const size = fld.type==="list" ? (raw||[]).length
+             : fld.type==="num"  ? Number(raw||0)
+             : s(raw).length;
+  if(rule.cond==="filled")   return size>0;
+  if(rule.cond==="min")      return size >= Number(rule.value||0);
+  if(rule.cond==="contains") return s(raw).toLowerCase().includes(s(rule.value).toLowerCase());
+  return true;
+}
+
+function activeRules(){
+  const base = state.rules.filter(r=>r.on);
+  const cust = state.custom.map(c=>({code:c.code,kind:"custom",on:true,text:c.name,custom:c}));
+  return base.concat(cust);
+}
+
+function check(card){
+  return activeRules().map(r=>{
+    if(r.kind==="code"){
+      const ok = r.f(card, r.thr);
+      const w = typeof r.why === "function" ? r.why(card, r.thr) : (r.why || null);
+      return {r, state: ok?"ok":"bad", why: ok?null:w};
+    }
+    if(r.kind==="custom"){
+      const ok = customTest(r.custom, card);
+      const fl = FIELDS.find(f=>f.key===r.custom.field);
+      const lab = fl ? fl.label : r.custom.field;
+      const need = r.custom.cond==="filled" ? "поле «"+lab+"» не заполнено"
+                 : r.custom.cond==="min"    ? "по полю «"+lab+"» нужно не меньше "+r.custom.value
+                 : "поле «"+lab+"» не содержит «"+r.custom.value+"»";
+      return {r, state: ok?"ok":"bad", why: ok?null:("Своё правило: "+need+".")};
+    }
+    if(!card.model){ return {r, state:"na", why:"Карточка добавлена вручную — смысловые проверки не считались."}; }
+    const m = card.model[r.key];
+    return {r, state:m.state, why:m.why};
+  });
+}
+
+function counts(res){
+  return {ok:res.filter(x=>x.state==="ok").length,
+          bad:res.filter(x=>x.state==="bad").length,
+          warn:res.filter(x=>x.state==="warn").length,
+          na:res.filter(x=>x.state==="na").length};
+}
+
+// ── отрисовка ──────────────────────────────────────────────────────────────
+const $ = id=>document.getElementById(id);
+
+function renderRules(){
+  const rows = state.rules.map(r=>{
+    const tag = r.kind==="model" ? '<span class="tagm">модель</span>' : '';
+    const thr = r.thr!==undefined
+      ? '<span class="thr">'+r.thrLabel+' <input type="number" min="0" data-thr="'+r.code+'" value="'+r.thr+'"> '+r.thrUnit+'</span>'
+      : '<span></span>';
+    return '<div class="rrow'+(r.on?'':' off')+'">'
+      +'<input type="checkbox" data-on="'+r.code+'"'+(r.on?' checked':'')+' aria-label="'+r.text+'">'
+      +'<span class="code">'+r.code+'</span>'
+      +'<span class="name">'+r.text+tag+'</span>'+thr+'</div>';
+  }).join("");
+  const cust = state.custom.map(c=>{
+    const fld = FIELDS.find(f=>f.key===c.field);
+    const desc = fld ? fld.label+' · '+(c.cond==="filled"?"заполнено":c.cond==="min"?"не меньше "+c.value:'содержит «'+c.value+'»') : '';
+    return '<div class="rrow">'
+      +'<input type="checkbox" checked disabled aria-label="'+c.name+'">'
+      +'<span class="code">'+c.code+'</span>'
+      +'<span class="name">'+c.name+'<span class="tagc">своё</span><span class="why" style="display:block;font-size:12.5px;color:var(--dim)">'+desc+'</span></span>'
+      +'<button class="del" data-del="'+c.code+'" title="Удалить">×</button></div>';
+  }).join("");
+  $("ruleslist").innerHTML = rows + cust;
+}
+
+function renderTabs(){
+  $("tabs").innerHTML = state.cards.map(c=>{
+    const k = counts(check(c));
+    return '<button class="tab" role="tab" data-id="'+c.id+'" aria-selected="'+(c.id===state.active)+'">'
+      + esc(c.title)
+      + '<span class="score">'+k.bad+' нарушений · '+k.warn+' замечаний</span></button>';
+  }).join("")
+    + '<button class="tab add" id="addCard">+ своя карточка</button>'
+    + '<button class="tab" id="resetAll" title="Вернуть исходные карточки и правила" style="border-style:dashed;color:var(--dim)">↺ сбросить</button>';
+}
+
+function esc(t){ return String(t).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m])); }
+
+function renderReport(){
+  const card = state.cards.find(c=>c.id===state.active);
+  if(!card){ $("report").innerHTML=""; return; }
+  const res = check(card); const k = counts(res);
+  const total = res.length;
+  const head = '<div class="cardhead"><h3>'+esc(card.title)+'</h3><div class="cardmeta">'
+    +'<span>'+(Number(card.price)||0).toLocaleString('ru-RU')+' ₽</span>'
+    +'<span>'+card.days+' дн.</span>'
+    +'<span>из '+esc(card.from||'—')+'</span>'
+    +'<span>прошло '+k.ok+' из '+total+'</span>'
+    +'<span><button class="btn ghost" id="editCard" style="padding:3px 9px;font-size:12px">править</button></span>'
+    +'</div>'
+    + (card.real && !card.checked
+      ? '<p class="small" style="margin:9px 0 0">Данные этой карточки собраны автоматически со страницы. Часть полей могла не попасть в сбор — тогда «нарушение» относится к моим данным, а не к самой карточке. Сверена глазами только «Орлиная полка».</p>'
+      : '')
+    +'</div>';
+  const rows = res.map(x=>{
+    const mark = x.state==="ok"?"✓":x.state==="warn"?"!":x.state==="na"?"–":"✕";
+    const tag = x.r.kind==="model" ? '<span class="tagm">модель</span>'
+              : x.r.kind==="custom" ? '<span class="tagc">своё</span>' : '';
+    const why = x.why ? '<span class="why">'+esc(x.why)+'</span>' : '';
+    const cls = x.state==="na" ? "" : x.state;
+    return '<div class="rule '+cls+'"><span class="code">'+x.r.code+'</span>'
+      +'<span class="mark">'+mark+'</span>'
+      +'<span class="txt">'+esc(x.r.text)+tag+why+'</span></div>';
+  }).join("");
+  $("report").innerHTML = head + '<div class="rules">'+rows+'</div>';
+}
+
+function renderStats(){
+  let bad=0,warn=0;
+  state.cards.forEach(c=>{const k=counts(check(c)); bad+=k.bad; warn+=k.warn;});
+  const ar = activeRules();
+  const codeN = ar.filter(r=>r.kind!=="model").length;
+  const html=[
+    {v:state.cards.length,k:"карточек загружено"},
+    {v:ar.length,k:"правил включено"},
+    {v:codeN+" из "+ar.length,k:"работают без ИИ",c:"is-ok"},
+    {v:bad,k:"нарушений найдено",c:"is-bad"},
+    {v:warn,k:"замечаний"}
+  ].map(x=>'<div class="stat '+(x.c||'')+'"><b>'+x.v+'</b><span>'+x.k+'</span></div>').join("");
+  $("stats").innerHTML=html;
+}
+
+function renderBars(){
+  const ar = activeRules(); const n = state.cards.length || 1;
+  const rows = ar.map(r=>{
+    let fails=0, warns=0;
+    state.cards.forEach(c=>{
+      const found = check(c).find(x=>x.r.code===r.code);
+      if(!found) return;
+      if(found.state==="bad") fails++;
+      if(found.state==="warn") warns++;
+    });
+    return {r,fails,warns,hit:fails+warns};
+  }).filter(x=>x.hit>0).sort((a,b)=>b.hit-a.hit);
+
+  if(!rows.length){ $("bars").innerHTML='<div class="bar"><span class="t">Все включённые правила проходят.</span><span></span><span></span></div>'; return; }
+
+  $("bars").innerHTML = rows.map(x=>{
+    const pct = Math.round(x.hit/n*100);
+    const isM = x.r.kind==="model";
+    return '<div class="bar">'
+      +'<span class="t">'+x.r.code+' · '+esc(x.r.text)+(isM?'<span class="tagm">модель</span>':'')+'</span>'
+      +'<span class="track"><span class="fill'+(isM?' m':'')+'" style="width:'+pct+'%"></span></span>'
+      +'<span class="v">'+x.hit+' из '+n+'</span></div>';
+  }).join("");
+}
+
+function renderForecast(){
+  const n = state.cards.length || 1;
+  const base = Math.max(1, Number(state.base)||3000);
+  let totalBad=0, clean=0;
+  state.cards.forEach(c=>{ const k=counts(check(c)); totalBad+=k.bad; if(k.bad===0) clean++; });
+  const avg = totalBad/n;
+  const cleanShare = clean/n;
+  const ar = activeRules();
+  const codeShare = ar.filter(r=>r.kind!=="model").length / (ar.length||1);
+
+  const worst = ar.map(r=>{
+    let f=0; state.cards.forEach(c=>{const x=check(c).find(y=>y.r.code===r.code); if(x&&x.state==="bad") f++;});
+    return {r,f};
+  }).filter(x=>x.f>0).sort((a,b)=>b.f-a.f)[0];
+
+  const rows = [
+    ["Карточек в базе", base.toLocaleString('ru-RU')],
+    ["Карточек без единого нарушения", Math.round(base*cleanShare).toLocaleString('ru-RU')+" ("+Math.round(cleanShare*100)+"%)"],
+    ["Карточек, требующих доработки", Math.round(base*(1-cleanShare)).toLocaleString('ru-RU')],
+    ["Нарушений всего", Math.round(base*avg).toLocaleString('ru-RU')],
+    ["Проверок выполнит обычный код", Math.round(codeShare*100)+"% правил"],
+  ];
+  if(worst) rows.push(["Самое частое нарушение",
+    worst.r.code+" · "+worst.r.text+" — примерно "+Math.round(base*worst.f/n).toLocaleString('ru-RU')+" карточек"]);
+
+  document.querySelector("#forecast tbody").innerHTML =
+    rows.map(([a,b])=>'<tr><td>'+a+'</td><td class="n">'+b+'</td></tr>').join("");
+}
+
+function renderAll(){ renderRules(); renderTabs(); renderReport(); renderStats(); renderBars(); renderForecast(); save(); }
+
+// ── редактор карточки ──────────────────────────────────────────────────────
+function openEditor(card){
+  const c = card || {id:"new-"+Date.now(), title:"", organizer:"", price:0, priceOld:0, days:1, from:"",
+    meeting:"", dates:"", programBlocks:0, included:[], notIncluded:[], bring:[],
+    cancellation:"", photos:0, stay:"", ageMin:0, ageMax:0, difficulty:"", prepay:"",
+    description:"", route:"", tags:[], important:"", seatsTotal:0};
+  const isNew = !card;
+  const L=(id,lab,val,type)=>'<div><label for="'+id+'">'+lab+'</label><input type="'+(type||"text")+'" id="'+id+'" value="'+esc(val===null||val===undefined?"":val)+'"></div>';
+  const T=(id,lab,val)=>'<div class="full"><label for="'+id+'">'+lab+'</label><textarea id="'+id+'">'+esc(val||"")+'</textarea></div>';
+  const H=t=>'<div class="full" style="margin-top:6px"><b style="font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--accent)">'+t+'</b></div>';
+  $("editorBox").innerHTML = '<div class="editor">'
+    + '<p class="small" style="margin:0 0 12px">Поля и порядок — как в карточке на сайте. Незаполненное подсвечивается сразу, пока вы печатаете.</p>'
+    + '<div class="progress"><span class="track"><span class="fill" id="e_fill" style="width:0%"></span></span>'
+    + '<span class="txt" id="e_count">—</span></div>'
+    + '<div class="grid">'
+    + H("Основное")
+    + L("e_title","Название тура",c.title)
+    + L("e_org","Организатор",c.organizer)
+    + L("e_diff","Сложность",c.difficulty)
+    + L("e_age","Возраст участников, от",c.ageMin,"number")
+    + L("e_agemax","Возраст участников, до",c.ageMax,"number")
+    + L("e_days","Продолжительность, дней",c.days,"number")
+    + T("e_desc","Описание",c.description)
+    + T("e_tags","Теги — по одному в строке",(c.tags||[]).join("\n"))
+    + T("e_route","Маршрут тура",c.route)
+    + H("Программа")
+    + L("e_from","Город выезда / встречи группы",c.from)
+    + L("e_meeting","Место сбора по адресу",c.meeting)
+    + L("e_blocks","Пунктов программы",c.programBlocks,"number")
+    + L("e_stay","Размещение",c.stay)
+    + H("Входит в стоимость и доп. расходы")
+    + T("e_inc","Входит в стоимость — по одному в строке",(c.included||[]).join("\n"))
+    + T("e_ninc","Дополнительные расходы — по одному в строке",(c.notIncluded||[]).join("\n"))
+    + H("Дополнительная информация")
+    + T("e_imp","Важная информация",c.important)
+    + T("e_bring","Что брать в тур — по одному в строке",(c.bring||[]).join("\n"))
+    + L("e_cancel","Условия отмены и возврата",c.cancellation)
+    + H("Цена, даты, фотографии")
+    + L("e_price","Цена, ₽",c.price,"number")
+    + L("e_priceold","Цена до скидки, ₽",c.priceOld,"number")
+    + L("e_prepay","Предоплата",c.prepay)
+    + L("e_dates","Даты заездов",c.dates)
+    + L("e_seats","Мест всего",c.seatsTotal,"number")
+    + L("e_photos","Фотографий",c.photos,"number")
+    + '<div class="full"><label for="e_photofiles">Прикрепить фотографии тура</label>'
+    + '<input type="file" id="e_photofiles" accept="image/*" multiple style="border:none;padding:0">'
+    + '<span class="small" id="e_photonote">Файлы никуда не отправляются. Считаю их количество, смотрю данные съёмки и проверяю, нет ли одинаковых.</span>'
+    + '<div id="e_photorep"></div></div>'
+    + '</div><div class="actions">'
+    + '<button class="btn" id="e_save">'+(isNew?"Добавить и проверить":"Сохранить")+'</button>'
+    + '<button class="btn ghost" id="e_cancel_btn">Отмена</button>'
+    + (isNew?'':'<button class="btn ghost" id="e_del">Удалить карточку</button>')
+    + '</div><p class="small">Смысловые проверки (помеченные «модель») для вручную заведённых карточек не считаются — модель внутри страницы не запустить.</p></div>';
+
+  // Живая подсветка: собираем карточку из полей формы и подсвечиваем то, что не прошло.
+  const box = $("editorBox");
+  function readForm(){
+    const lines = v => (v||"").split("\n").map(x=>x.trim()).filter(Boolean);
+    const g = id => { const el = $(id); return el ? el.value : ""; };
+    return {
+      title:g("e_title"), organizer:g("e_org"), difficulty:g("e_diff"),
+      ageMin:+g("e_age")||0, ageMax:+g("e_agemax")||0, days:+g("e_days")||0,
+      description:g("e_desc"), tags:lines(g("e_tags")), route:g("e_route"),
+      from:g("e_from"), meeting:g("e_meeting"), programBlocks:+g("e_blocks")||0,
+      stay:g("e_stay"), included:lines(g("e_inc")), notIncluded:lines(g("e_ninc")),
+      important:g("e_imp"), bring:lines(g("e_bring")), cancellation:g("e_cancel"),
+      price:+g("e_price")||0, priceOld:+g("e_priceold")||0, prepay:g("e_prepay"),
+      dates:g("e_dates"), seatsTotal:+g("e_seats")||0, photos:+g("e_photos")||0,
+      model:null
+    };
+  }
+  function paint(){
+    box.querySelectorAll(".miss").forEach(el=>el.classList.remove("miss"));
+    box.querySelectorAll(".misslab").forEach(el=>el.classList.remove("misslab"));
+    box.querySelectorAll(".missmsg").forEach(el=>el.remove());
+    const draft = readForm();
+    const res = check(draft);
+    let bad = 0, total = 0;
+    res.forEach(x=>{
+      if(x.state === "na") return;          // смысловые проверки живьём не считаются
+      total++;
+      if(x.state !== "bad") return;
+      bad++;
+      const id = x.r.kind === "custom"
+        ? FIELD_INPUT[x.r.custom.field]
+        : RULE_FIELD[x.r.code];
+      const el = id && $(id);
+      if(!el) return;
+      el.classList.add("miss");
+      const lab = box.querySelector('label[for="'+id+'"]');
+      if(lab) lab.classList.add("misslab");
+      if(!el.parentNode.querySelector(".missmsg")){
+        const m = document.createElement("span");
+        m.className = "missmsg";
+        m.textContent = x.why || x.r.text;
+        el.parentNode.appendChild(m);
+      }
+    });
+    const ok = total - bad;
+    const pct = total ? Math.round(ok/total*100) : 0;
+    if($("e_fill")) $("e_fill").style.width = pct + "%";
+    if($("e_count")) $("e_count").innerHTML = bad
+      ? "заполнено " + ok + " из " + total + " · <b>осталось " + bad + "</b>"
+      : "заполнено " + ok + " из " + total + " — всё на месте";
+  }
+  box.addEventListener("input", paint);
+  box.addEventListener("change", paint);
+  paint();
+
+  // Прикреплённые фотографии: считаем количество и сразу проверяем их же.
+  const pf = $("e_photofiles");
+  if(pf) pf.addEventListener("change", async e => {
+    const files = Array.from(e.target.files || []);
+    if(!files.length) return;
+    const rows = [];
+    for(const f of files){
+      try{
+        const buf = await f.arrayBuffer();
+        const ex = /jpe?g/i.test(f.type) ? readExif(buf)
+                 : {hasExif:false,make:null,model:null,software:null,taken:null,gps:false};
+        const url = URL.createObjectURL(f);
+        const img = await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url;});
+        rows.push({name:f.name, ex, hash:aHash(img)});
+        URL.revokeObjectURL(url);
+      }catch(err){ rows.push({name:f.name, error:true}); }
+    }
+    $("e_photos").value = rows.length;
+    const dups = [];
+    rows.forEach((p,i)=>{
+      if(p.error) return;
+      const j = rows.findIndex((q,k)=>k<i && !q.error && dist(p.hash,q.hash)<=5);
+      if(j>=0) dups.push([p.name, rows[j].name]);
+    });
+    const noex = rows.filter(p=>!p.error && !p.ex.hasExif);
+    let html = '<div class="rules" style="margin-top:10px">';
+    html += '<div class="rule ok"><span class="code">Ф</span><span class="mark">✓</span>'
+         +  '<span class="txt">Прикреплено '+plural(rows.length,["фотография","фотографии","фотографий"])+'</span></div>';
+    if(dups.length) dups.forEach(([a,b])=>{
+      html += '<div class="rule bad"><span class="code">—</span><span class="mark">✕</span>'
+           +  '<span class="txt">Одинаковые снимки<span class="why">«'+esc(a)+'» совпадает с «'+esc(b)+'». В карточках разных организаторов это повод разобраться.</span></span></div>';
+    });
+    if(noex.length){
+      html += '<div class="rule warn"><span class="code">—</span><span class="mark">!</span>'
+           +  '<span class="txt">Без данных съёмки: '+plural(noex.length,["снимок","снимка","снимков"])
+           +  '<span class="why">'+noex.slice(0,4).map(p=>esc(p.name)).join(", ")+(noex.length>4?" и ещё "+(noex.length-4):"")
+           +  '. Так бывает у скачанных из интернета и у пропущенных через соцсети. Не доказательство, но повод посмотреть.</span></span></div>';
+    }
+    const withCam = rows.filter(p=>!p.error && (p.ex.make||p.ex.model));
+    if(withCam.length){
+      html += '<div class="rule ok"><span class="code">—</span><span class="mark">✓</span>'
+           +  '<span class="txt">Со следами камеры: '+plural(withCam.length,["снимок","снимка","снимков"])
+           +  '<span class="why">'+esc(((withCam[0].ex.make||"")+" "+(withCam[0].ex.model||"")).trim())+'</span></span></div>';
+    }
+    html += '</div>';
+    $("e_photorep").innerHTML = html;
+    paint();
+  });
+
+  $("e_save").onclick = ()=>{
+    const lines = v => v.split("\n").map(x=>x.trim()).filter(Boolean);
+    const nc = {
+      id:c.id, title:$("e_title").value||"Без названия", organizer:$("e_org").value,
+      difficulty:$("e_diff").value, ageMin:+$("e_age").value||0, ageMax:+$("e_agemax").value||0,
+      days:+$("e_days").value||0, description:$("e_desc").value,
+      tags:lines($("e_tags").value), route:$("e_route").value,
+      from:$("e_from").value, meeting:$("e_meeting").value,
+      programBlocks:+$("e_blocks").value||0, stay:$("e_stay").value,
+      included:lines($("e_inc").value), notIncluded:lines($("e_ninc").value),
+      important:$("e_imp").value, bring:lines($("e_bring").value),
+      cancellation:$("e_cancel").value,
+      price:+$("e_price").value||0, priceOld:+$("e_priceold").value||0,
+      prepay:$("e_prepay").value, dates:$("e_dates").value,
+      seatsTotal:+$("e_seats").value||0, photos:+$("e_photos").value||0,
+      model: card ? card.model : null, real: card ? card.real : false, checked: card ? card.checked : false
+    };
+    const i = state.cards.findIndex(x=>x.id===c.id);
+    if(i>=0) state.cards[i]=nc; else state.cards.push(nc);
+    state.active = nc.id;
+    $("editorBox").innerHTML="";
+    renderAll();
+  };
+  $("e_cancel_btn").onclick = ()=>{ $("editorBox").innerHTML=""; };
+  if(!isNew && $("e_del")) $("e_del").onclick = ()=>{
+    state.cards = state.cards.filter(x=>x.id!==c.id);
+    if(!state.cards.length) state.cards = BASE_CARDS.map(x=>clone(x));
+    state.active = state.cards[0].id;
+    $("editorBox").innerHTML="";
+    renderAll();
+  };
+}
+
+// ── события ────────────────────────────────────────────────────────────────
+$("ruleslist").addEventListener("change", e=>{
+  const on = e.target.dataset.on, thr = e.target.dataset.thr;
+  if(on){ const r=state.rules.find(x=>x.code===on); if(r){ r.on=e.target.checked; renderAll(); } }
+  if(thr){ const r=state.rules.find(x=>x.code===thr); if(r){ r.thr=Math.max(0,+e.target.value||0); renderAll(); } }
+});
+$("ruleslist").addEventListener("click", e=>{
+  const del = e.target.dataset && e.target.dataset.del;
+  if(del){ state.custom = state.custom.filter(c=>c.code!==del); renderAll(); }
+});
+
+$("nrField").innerHTML = FIELDS.map(f=>'<option value="'+f.key+'">'+f.label+'</option>').join("");
+$("nrAdd").onclick = ()=>{
+  const name = $("nrName").value.trim();
+  if(!name){ $("nrName").focus(); return; }
+  const n = state.custom.length+1;
+  state.custom.push({code:"C"+String(n).padStart(2,"0"), name,
+    field:$("nrField").value, cond:$("nrCond").value, value:$("nrVal").value.trim()});
+  $("nrName").value=""; $("nrVal").value="";
+  renderAll();
+};
+
+$("tabs").addEventListener("click", e=>{
+  if(e.target.closest("#resetAll")){
+    try{ localStorage.removeItem(LS); }catch(err){}
+    state = {rules:mkRules(), custom:[], cards:BASE_CARDS.map(c=>clone(c)),
+             active:BASE_CARDS[0].id, base:3000};
+    $("editorBox").innerHTML = "";
+    $("baseSize").value = state.base;
+    renderAll();
+    return;
+  }
+  if(e.target.closest("#addCard")){ openEditor(null); return; }
+  const btn = e.target.closest(".tab");
+  if(btn && btn.dataset.id){ state.active=btn.dataset.id; $("editorBox").innerHTML=""; renderAll(); }
+});
+$("report").addEventListener("click", e=>{
+  if(e.target.id==="editCard"){ openEditor(state.cards.find(c=>c.id===state.active)); }
+});
+$("baseSize").addEventListener("input", e=>{ state.base=+e.target.value||3000; renderForecast(); save(); });
+$("baseSize").value = state.base;
+
+renderAll();
+
+// ── проверка фотографий ────────────────────────────────────────────────────
+// Минимальный разбор EXIF: нужны только камера, дата съёмки, координаты и софт.
+function readExif(buffer){
+  const dv = new DataView(buffer);
+  const out = {hasExif:false, make:null, model:null, software:null, taken:null, gps:false};
+  if(dv.byteLength < 4 || dv.getUint16(0) !== 0xFFD8) return out;
+  let off = 2;
+  while(off < dv.byteLength - 4){
+    if(dv.getUint8(off) !== 0xFF){ off++; continue; }
+    const marker = dv.getUint8(off+1);
+    if(marker === 0xDA || marker === 0xD9) break;
+    const size = dv.getUint16(off+2);
+    if(marker === 0xE1){
+      const st = off + 4;
+      let sig = "";
+      for(let i=0;i<4;i++) sig += String.fromCharCode(dv.getUint8(st+i));
+      if(sig === "Exif"){ parseTiff(dv, st+6, out); out.hasExif = true; return out; }
+    }
+    off += 2 + size;
+  }
+  return out;
+}
+function parseTiff(dv, base, out){
+  if(base + 8 > dv.byteLength) return;
+  const bom = dv.getUint16(base);
+  const le = bom === 0x4949;
+  if(!le && bom !== 0x4D4D) return;
+  const u16 = o => dv.getUint16(o, le), u32 = o => dv.getUint32(o, le);
+  if(u16(base+2) !== 42) return;
+  const read = (ifdOff, want) => {
+    if(ifdOff + 2 > dv.byteLength) return;
+    const n = u16(ifdOff);
+    for(let i=0;i<n;i++){
+      const e = ifdOff + 2 + i*12;
+      if(e + 12 > dv.byteLength) return;
+      const tag = u16(e), type = u16(e+2), count = u32(e+4);
+      const sizes = {1:1,2:1,3:2,4:4,5:8,7:1,9:4,10:8};
+      const bytes = (sizes[type]||1) * count;
+      const vo = bytes <= 4 ? e + 8 : base + u32(e+8);
+      if(!want[tag]) continue;
+      if(type === 2){
+        let t = "";
+        for(let j=0;j<count-1 && vo+j < dv.byteLength;j++){
+          const ch = dv.getUint8(vo+j); if(ch === 0) break; t += String.fromCharCode(ch);
+        }
+        want[tag](t.trim());
+      } else if(type === 4){ want[tag](u32(vo)); }
+    }
+  };
+  let ptr = 0;
+  read(base + u32(base+4), {
+    0x010F:v=>out.make=v||null, 0x0110:v=>out.model=v||null,
+    0x0131:v=>out.software=v||null, 0x8769:v=>ptr=v, 0x8825:()=>out.gps=true
+  });
+  if(ptr) read(base + ptr, {0x9003:v=>out.taken=v||null, 0x8825:()=>out.gps=true});
+}
+
+// Отпечаток изображения: 8×8 в оттенках серого, каждый пиксель светлее или темнее среднего.
+function aHash(img){
+  const N = 8, cv = document.createElement("canvas");
+  cv.width = N; cv.height = N;
+  const cx = cv.getContext("2d");
+  cx.drawImage(img, 0, 0, N, N);
+  const d = cx.getImageData(0,0,N,N).data;
+  const g = [];
+  for(let i=0;i<d.length;i+=4) g.push(0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2]);
+  const mean = g.reduce((a,b)=>a+b,0)/g.length;
+  return g.map(v=>v>mean?1:0);
+}
+function dist(a,b){ let n=0; for(let i=0;i<a.length;i++) if(a[i]!==b[i]) n++; return n; }
+function kb(n){ return n>1048576 ? (n/1048576).toFixed(1)+" МБ" : Math.round(n/1024)+" КБ"; }
+
+const photos = [];
+$("photoIn").addEventListener("change", async e => {
+  const files = Array.from(e.target.files || []);
+  for(const f of files){
+    try{
+      const buf = await f.arrayBuffer();
+      const ex = /jpe?g/i.test(f.type) ? readExif(buf) : {hasExif:false,make:null,model:null,software:null,taken:null,gps:false};
+      const url = URL.createObjectURL(f);
+      const img = await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=url; });
+      photos.push({name:f.name, size:f.size, w:img.naturalWidth, h:img.naturalHeight, ex, hash:aHash(img), url});
+    }catch(err){ photos.push({name:f.name, size:f.size, error:true}); }
+  }
+  renderPhotos();
+});
+
+function renderPhotos(){
+  if(!photos.length){ $("photoOut").innerHTML=""; return; }
+  const rows = photos.map((p,i)=>{
+    if(p.error) return '<div class="rule bad"><span class="code">—</span><span class="mark">✕</span>'
+      +'<span class="txt">'+esc(p.name)+'<span class="why">Не удалось прочитать файл.</span></span></div>';
+    const dup = photos.findIndex((q,j)=>j<i && !q.error && dist(p.hash,q.hash)<=5);
+    const edited = p.ex.software && !/camera|phone/i.test(p.ex.software||"");
+    let st, mark, verdict;
+    if(dup >= 0){ st="bad"; mark="✕"; verdict="То же изображение, что и «"+esc(photos[dup].name)+"». В карточках разных организаторов это повод разобраться."; }
+    else if(!p.ex.hasExif){ st="warn"; mark="!"; verdict="Данных съёмки нет. Так бывает у скачанных из интернета и у пропущенных через соцсети. Не доказательство, но повод посмотреть."; }
+    else if(edited && !p.ex.make){ st="warn"; mark="!"; verdict="Камера не указана, зато есть след редактора: "+esc(p.ex.software)+"."; }
+    else { st="ok"; mark="✓"; verdict="Данные съёмки на месте — похоже на собственный снимок."; }
+    const facts = [
+      kb(p.size), p.w+"×"+p.h,
+      p.ex.hasExif ? "данные съёмки есть" : "данных съёмки нет",
+      (p.ex.make||p.ex.model) ? ((p.ex.make||"")+" "+(p.ex.model||"")).trim() : null,
+      p.ex.taken ? "снято "+p.ex.taken.slice(0,10).replace(/:/g,".") : null,
+      p.ex.gps ? "с координатами" : null,
+      p.ex.software ? "обработано: "+p.ex.software : null
+    ].filter(Boolean).join(" · ");
+    return '<div class="rule '+st+'"><span class="code">Ф'+String(i+1).padStart(2,"0")+'</span>'
+      +'<span class="mark">'+mark+'</span>'
+      +'<span class="txt">'+esc(p.name)
+      +'<span class="why">'+facts+'</span>'
+      +'<span class="why">'+verdict+'</span></span></div>';
+  }).join("");
+  const dups = photos.filter((p,i)=>!p.error && photos.some((q,j)=>j<i && !q.error && dist(p.hash,q.hash)<=5)).length;
+  const noex = photos.filter(p=>!p.error && !p.ex.hasExif).length;
+  const head = '<div class="cardhead"><h3>Проверено снимков: '+photos.length+'</h3>'
+    +'<div class="cardmeta"><span>без данных съёмки: '+noex+'</span><span>совпадений: '+dups+'</span>'
+    +'<span><button class="btn ghost" id="clearPhotos" style="padding:3px 9px;font-size:12px">очистить</button></span></div></div>';
+  $("photoOut").innerHTML = head + '<div class="rules">'+rows+'</div>';
+  const cb = $("clearPhotos");
+  if(cb) cb.onclick = ()=>{ photos.forEach(p=>p.url&&URL.revokeObjectURL(p.url)); photos.length=0; $("photoIn").value=""; renderPhotos(); };
+}
+</script>
