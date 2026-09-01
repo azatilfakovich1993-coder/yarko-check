@@ -731,7 +731,10 @@ function openEditor(card){
     + L("e_prepay","Предоплата",c.prepay)
     + L("e_dates","Даты заездов",c.dates)
     + L("e_seats","Мест всего",c.seatsTotal,"number")
-    + L("e_photos","Фотографий",c.photos,"number")
+    + '<div><label for="e_photos">Фотографий</label>'
+    + '<input type="number" id="e_photos" value="'+(c.photos||0)+'" readonly tabindex="-1" '
+    + 'style="background:var(--sunk);color:var(--dim);cursor:default">'
+    + '<span class="small">Считается по прикреплённым файлам, руками не меняется.</span></div>'
     + '<div class="full"><label for="e_photofiles">Прикрепить фотографии тура</label>'
     + '<input type="file" id="e_photofiles" accept="image/*" multiple style="border:none;padding:0">'
     + '<span class="small" id="e_photonote">Файлы никуда не отправляются. Считаю их количество, смотрю данные съёмки и проверяю, нет ли одинаковых.</span>'
