@@ -797,23 +797,11 @@ function openEditor(card){
   box.addEventListener("change", paint);
   paint();
 
-  // Прикреплённые фотографии: считаем количество и сразу проверяем их же.
+  // Прикреплённые фотографии копятся: поле выбора файлов каждый раз отдаёт
+  // только последнюю выборку, поэтому складываем в свой список.
+  const rows = [];
   const pf = $("e_photofiles");
-  if(pf) pf.addEventListener("change", async e => {
-    const files = Array.from(e.target.files || []);
-    if(!files.length) return;
-    const rows = [];
-    for(const f of files){
-      try{
-        const buf = await f.arrayBuffer();
-        const ex = /jpe?g/i.test(f.type) ? readExif(buf)
-                 : {hasExif:false,make:null,model:null,software:null,taken:null,gps:false};
-        const url = URL.createObjectURL(f);
-        const img = await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url;});
-        rows.push({name:f.name, ex, hash:aHash(img)});
-        URL.revokeObjectURL(url);
-      }catch(err){ rows.push({name:f.name, error:true}); }
-    }
+  function renderPhotoReport(){
     $("e_photos").value = rows.length;
     const dups = [];
     rows.forEach((p,i)=>{
@@ -824,7 +812,9 @@ function openEditor(card){
     const noex = rows.filter(p=>!p.error && !p.ex.hasExif);
     let html = '<div class="rules" style="margin-top:10px">';
     html += '<div class="rule ok"><span class="code">Ф</span><span class="mark">✓</span>'
-         +  '<span class="txt">Прикреплено '+plural(rows.length,["фотография","фотографии","фотографий"])+'</span></div>';
+         +  '<span class="txt">Прикреплено '+plural(rows.length,["фотография","фотографии","фотографий"])
+         +  ' <button type="button" class="btn ghost" id="e_photoclear" style="padding:1px 8px;font-size:11.5px;margin-left:8px">убрать все</button>'
+         +  '<span class="why">'+rows.slice(0,6).map(p=>esc(p.name)).join(", ")+(rows.length>6?" и ещё "+(rows.length-6):"")+'</span></span></div>';
     if(dups.length) dups.forEach(([a,b])=>{
       html += '<div class="rule bad"><span class="code">—</span><span class="mark">✕</span>'
            +  '<span class="txt">Одинаковые снимки<span class="why">«'+esc(a)+'» совпадает с «'+esc(b)+'». В карточках разных организаторов это повод разобраться.</span></span></div>';
@@ -843,7 +833,28 @@ function openEditor(card){
     }
     html += '</div>';
     $("e_photorep").innerHTML = html;
+    const cl = $("e_photoclear");
+    if(cl) cl.onclick = ()=>{ rows.length = 0; $("e_photorep").innerHTML = ""; $("e_photos").value = 0; paint(); };
     paint();
+  }
+
+  if(pf) pf.addEventListener("change", async e => {
+    const files = Array.from(e.target.files || []);
+    if(!files.length) return;
+    for(const f of files){
+      if(rows.some(p => p.name === f.name && p.size === f.size)) continue; // уже добавлен
+      try{
+        const buf = await f.arrayBuffer();
+        const ex = /jpe?g/i.test(f.type) ? readExif(buf)
+                 : {hasExif:false,make:null,model:null,software:null,taken:null,gps:false};
+        const url = URL.createObjectURL(f);
+        const img = await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url;});
+        rows.push({name:f.name, size:f.size, ex, hash:aHash(img)});
+        URL.revokeObjectURL(url);
+      }catch(err){ rows.push({name:f.name, size:f.size, error:true}); }
+    }
+    e.target.value = "";   // чтобы тот же файл можно было выбрать снова
+    renderPhotoReport();
   });
 
   $("e_save").onclick = ()=>{
