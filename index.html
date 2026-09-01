@@ -803,34 +803,50 @@ function openEditor(card){
   const pf = $("e_photofiles");
   function renderPhotoReport(){
     $("e_photos").value = rows.length;
-    const dups = [];
+    if(!rows.length){ $("e_photorep").innerHTML = ""; return; }
+    const bad = rows.filter((p,i)=>!p.error && rows.some((q,k)=>k<i && !q.error && dist(p.hash,q.hash)<=5)).length;
+    const warn = rows.filter(p=>!p.error && !p.ex.hasExif).length;
+    let html = '<div class="cardhead" style="margin-top:10px"><h3 style="font-size:15px">'
+      + 'Прикреплено ' + plural(rows.length,["фотография","фотографии","фотографий"]) + '</h3>'
+      + '<div class="cardmeta"><span>совпадений: '+bad+'</span><span>без данных съёмки: '+warn+'</span>'
+      + '<span><button type="button" class="btn ghost" id="e_photoclear" style="padding:2px 8px;font-size:11.5px">убрать все</button></span>'
+      + '</div></div><div class="rules">';
+
     rows.forEach((p,i)=>{
-      if(p.error) return;
-      const j = rows.findIndex((q,k)=>k<i && !q.error && dist(p.hash,q.hash)<=5);
-      if(j>=0) dups.push([p.name, rows[j].name]);
+      const num = 'Ф' + String(i+1).padStart(2,"0");
+      if(p.error){
+        html += '<div class="rule bad"><span class="code">'+num+'</span><span class="mark">✕</span>'
+             +  '<span class="txt">'+esc(p.name)+'<span class="why">Файл не удалось прочитать.</span></span></div>';
+        return;
+      }
+      const dupIdx = rows.findIndex((q,k)=>k<i && !q.error && dist(p.hash,q.hash)<=5);
+      const edited = p.ex.software && !p.ex.make;
+      let st, mark, verdict;
+      if(dupIdx >= 0){
+        st="bad"; mark="✕";
+        verdict = "Тот же снимок, что и «"+esc(rows[dupIdx].name)+"». В карточках разных организаторов это повод разобраться.";
+      } else if(!p.ex.hasExif){
+        st="warn"; mark="!";
+        verdict = "Нет данных съёмки. Так бывает у скачанных из интернета и у пропущенных через соцсети. Не доказательство, но повод посмотреть.";
+      } else if(edited){
+        st="warn"; mark="!";
+        verdict = "Камера не указана, зато есть след редактора: "+esc(p.ex.software)+".";
+      } else {
+        st="ok"; mark="✓";
+        verdict = "Данные съёмки на месте — похоже на собственный снимок.";
+      }
+      const facts = [
+        p.w && p.h ? p.w+"×"+p.h : null,
+        p.size ? (p.size>1048576 ? (p.size/1048576).toFixed(1)+" МБ" : Math.round(p.size/1024)+" КБ") : null,
+        (p.ex.make||p.ex.model) ? ((p.ex.make||"")+" "+(p.ex.model||"")).trim() : null,
+        p.ex.taken ? "снято "+p.ex.taken.slice(0,10).replace(/:/g,".") : null,
+        p.ex.gps ? "с координатами" : null
+      ].filter(Boolean).join(" · ");
+      html += '<div class="rule '+st+'"><span class="code">'+num+'</span><span class="mark">'+mark+'</span>'
+           +  '<span class="txt">'+esc(p.name)
+           +  (facts ? '<span class="why">'+facts+'</span>' : '')
+           +  '<span class="why">'+verdict+'</span></span></div>';
     });
-    const noex = rows.filter(p=>!p.error && !p.ex.hasExif);
-    let html = '<div class="rules" style="margin-top:10px">';
-    html += '<div class="rule ok"><span class="code">Ф</span><span class="mark">✓</span>'
-         +  '<span class="txt">Прикреплено '+plural(rows.length,["фотография","фотографии","фотографий"])
-         +  ' <button type="button" class="btn ghost" id="e_photoclear" style="padding:1px 8px;font-size:11.5px;margin-left:8px">убрать все</button>'
-         +  '<span class="why">'+rows.slice(0,6).map(p=>esc(p.name)).join(", ")+(rows.length>6?" и ещё "+(rows.length-6):"")+'</span></span></div>';
-    if(dups.length) dups.forEach(([a,b])=>{
-      html += '<div class="rule bad"><span class="code">—</span><span class="mark">✕</span>'
-           +  '<span class="txt">Одинаковые снимки<span class="why">«'+esc(a)+'» совпадает с «'+esc(b)+'». В карточках разных организаторов это повод разобраться.</span></span></div>';
-    });
-    if(noex.length){
-      html += '<div class="rule warn"><span class="code">—</span><span class="mark">!</span>'
-           +  '<span class="txt">Без данных съёмки: '+plural(noex.length,["снимок","снимка","снимков"])
-           +  '<span class="why">'+noex.slice(0,4).map(p=>esc(p.name)).join(", ")+(noex.length>4?" и ещё "+(noex.length-4):"")
-           +  '. Так бывает у скачанных из интернета и у пропущенных через соцсети. Не доказательство, но повод посмотреть.</span></span></div>';
-    }
-    const withCam = rows.filter(p=>!p.error && (p.ex.make||p.ex.model));
-    if(withCam.length){
-      html += '<div class="rule ok"><span class="code">—</span><span class="mark">✓</span>'
-           +  '<span class="txt">Со следами камеры: '+plural(withCam.length,["снимок","снимка","снимков"])
-           +  '<span class="why">'+esc(((withCam[0].ex.make||"")+" "+(withCam[0].ex.model||"")).trim())+'</span></span></div>';
-    }
     html += '</div>';
     $("e_photorep").innerHTML = html;
     const cl = $("e_photoclear");
@@ -849,7 +865,7 @@ function openEditor(card){
                  : {hasExif:false,make:null,model:null,software:null,taken:null,gps:false};
         const url = URL.createObjectURL(f);
         const img = await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url;});
-        rows.push({name:f.name, size:f.size, ex, hash:aHash(img)});
+        rows.push({name:f.name, size:f.size, w:img.naturalWidth, h:img.naturalHeight, ex, hash:aHash(img)});
         URL.revokeObjectURL(url);
       }catch(err){ rows.push({name:f.name, size:f.size, error:true}); }
     }
